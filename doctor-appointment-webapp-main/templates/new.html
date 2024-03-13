@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>www.webmedconsult</title>
+    <link rel="stylesheet" href="static/style.css">
+    <script src="https://kit.fontawesome.com/382c9e01c9.js" crossorigin="anonymous"></script>
+    <style>
+        /* Style for clickable containers */
+        .clickable-container {
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .clickable-container:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+
+<body>
+    <div id="services">
+        <div class="container">
+            <div class="services-list">
+                <div class="clickable-container" onclick="redirectToNew('/rd')">
+                    <i class="fa-solid fa-video"></i><!-- logo -->
+                    <h2>content</h2>
+                    <p></p>
+                    <a href="/rd"><span>Click me call</span></a>
+                </div>
+                <div class="clickable-container" onclick="redirectToNew('/rd')">
+                    <i class="fa-regular fa-calendar-check"></i><!-- logo -->
+                    <h2>content</h2>
+                    <p></p>
+                    <a href="/new"><span>Click here to book</span></a>
+                </div>
+                <div class="clickable-container" onclick="redirectToNew('/rd')">
+                    <i class="fa-brands fa-rocketchat"></i><!-- logo -->
+                    <h2>content</h2>
+                    <p></p>
+                    <a href="/rd"><span>Click here to chat</span></a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function redirectToNew(route) {
+            window.location.href = route;
+        }
+    </script>
+</body>
+
+</html>
