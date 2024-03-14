@@ -1,156 +1,337 @@
-from flask import Flask, render_template, request, session, Response, redirect, url_for, make_response
+from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
 
 app = Flask(__name__)
-
-# app.secret_key = 'rushi'
-
-app.config['SQLALCHEMY_DATABASE_URI']="sqlite:///DATA.db"
+app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///DATAAA.db"
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-db=SQLAlchemy(app)
+app.secret_key = 'your_secret_key'  # Set a secret key for flashing messages
+db = SQLAlchemy(app)
 
-class webmedconsultmaster(db.Model):
-    sno = db.Column(db.Integer, primary_key=True)   
-    name = db.Column(db.String(80), nullable=False)
-    phone = db.Column(db.Integer, nullable=False)
-    email = db.Column(db.String(80), nullable=False)
-    Age = db.Column(db.Integer, nullable=False)
-    gender = db.Column(db.String(50), nullable=False)
-    height = db.Column(db.Integer, nullable=False)
-    Weight = db.Column(db.Integer, nullable=False)
-    bloodgroup = db.Column(db.String(50), nullable=False)
+class User(db.Model):
+    __tablename__ = 'user'
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password = db.Column(db.String(60), nullable=False)
 
-    def __repr__(self) -> str:
-        return f"{self.sno} {self.name} {self.phone} {self.email} {self.Age} {self.gender} {self.height} {self.Weight} {self.bloodgroup}"
+    def __repr__(self):
+        return f"User('{self.username}', '{self.email}')"
     
 
-class Appoinment(db.Model):
-    sno = db.Column(db.Integer, primary_key=True)
-    appoinmentname = db.Column(db.String(80), nullable=False)
-    email = db.Column(db.String(80), nullable=False)
-    doctor = db.Column(db.String(80), nullable=False)
-    message = db.Column(db.String(250), nullable=False)
-    def __repr__(self) -> str:
-        return f"{self.sno} {self.appoinmentname} {self.email} {self.doctor} {self.message}"
     
 class Contact(db.Model):
-    sno = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(80), nullable=False)
-    email = db.Column(db.String(80), nullable=False)
-    message = db.Column(db.String(250), nullable=False)
-    def __repr__(self) -> str:
-        return f"{self.sno} {self.name} {self.email} {self.message}"
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(100), nullable=False)
+    message = db.Column(db.Text, nullable=False)
 
-@app.route('/')
-def hello_world():
-    # return 'Hello, World!'
-    return render_template('index.html')
-@app.route('/new')
-def new():
-    # return 'Hello, World!'
-    return render_template('new.html')
-@app.route('/rd')
-def rd():
-    # return 'Hello, World!'
-    return render_template('rdkit.html')
 
-@app.route('/contact', methods=["GET", "POST"])
+# Routes
+
+@app.route('/contact', methods=['POST'])
 def contact():
-    # return 'Hello, World!'
     if request.method == 'POST':
-        # gender = request.form['gender']
         name = request.form['name']
         email = request.form['email']
         message = request.form['message']
-
-        rushi = Contact(name=name, email=email, message=message)
-        db.session.add(rushi)
+        
+        # Create a new Contact object
+        new_contact = Contact(name=name, email=email, message=message)
+        
+        # Add the object to the database
+        db.session.add(new_contact)
         db.session.commit()
-    return render_template('return3.html')
+        
+        # Fetch all contacts from the database
+        contacts = Contact.query.all()
+        
+        
+        return redirect(url_for('index', contacts=contacts))
 
-@app.route('/form', methods=["GET", "POST"])
-def form():
-    print("inside function")
+@app.route('/delete_contact/<int:contact_id>', methods=['POST'])
+def delete_contact(contact_id):
+    contact = Contact.query.get_or_404(contact_id)
+    db.session.delete(contact)
+    db.session.commit()
+    flash('Contact deleted successfully!', 'success')
+    return redirect(url_for('contacts'))
+
+
+
+@app.route('/contacts')
+def contacts():
+    # Fetch all contacts from the database
+    contacts = Contact.query.all()
+    
+    return render_template('contacts.html', contacts=contacts)
+   
+@app.route('/admin_login', methods=['GET', 'POST'])
+def admin_login():
     if request.method == 'POST':
-        # gender = request.form['gender']
-        name = request.form['name']
-        phone = request.form['phone']
-        email = request.form['email']
-        print(name)
-        Age = request.form['Age']
-        print(Age)
-        gender = request.form['gender']
-        print(gender)
-        height = request.form['height']
-        Weight = request.form['Weight']
-        bloodgroup = request.form['bloodgroup']
-        print("Entered in loop")
-        rusih = webmedconsultmaster(name=name, phone=phone, email=email, Age=Age, gender=gender, height=height, Weight=Weight, bloodgroup=bloodgroup)
-        db.session.add(rusih)
-        # db.session.commit()   
-        print("Executed")
-        db.session.commit()
-        return render_template('return.html')
+        admin_username = request.form['admin_username']
+        admin_password = request.form['admin_password']
+        
+        # Check if the entered credentials match the hardcoded values
+        if admin_username == 'avi' and admin_password == 'avi':
+             # Store admin username in the session
+            return redirect(url_for('contacts'))  # Redirect to admin dashboard
+        else:
+            return render_template('adminlogin.html', message='Invalid admin username or password.')
+    else:
+        return render_template('adminlogin.html')
+     
+@app.route('/signup', methods=['POST'])
+def signup():
+    username = request.form['txt']
+    email = request.form['email']
+    password = request.form['pswd']
+    reenter_password = request.form['reenter_pswd']
 
-    # return 'Hello, World!'
-    return render_template('form.html')
+    if password != reenter_password:
+        flash("Passwords do not match. Please try again.", 'error')
+        return redirect(url_for('login'))
+
+    if User.query.filter_by(email=email).first():
+        flash("Email already exists. Please use another email.", 'error')
+        return redirect(url_for('login'))
+
+    new_user = User(username=username, email=email, password=password)
+    db.session.add(new_user)
+    db.session.commit()
+
+    flash("Signup successful!", 'success')
+    return redirect(url_for('login'))
+
+@app.route('/login2', methods=['POST'])
+def login2():
+    email = request.form['email']
+    password = request.form['pswd']
+
+    user = User.query.filter_by(email=email, password=password).first()
+
+    if user:
+        flash("Login successful!", 'success')
+        return redirect(url_for('main'))
+    else:
+        flash("Invalid email or password.", 'error')
+        return redirect(url_for('login'))
 
 @app.route('/login')
 def login():
-    # return 'Hello, World!'
-    # if request.method == "POST":
-        
-
     return render_template('login.html')
 
+@app.route('/adminlogin')
+def adminlogin():
+    return render_template('adminlogin.html')
 
-@app.route('/videocall')
-def videocall():
-    # return 'Hello, World!'
-    return render_template('videocall.html')
+@app.route('/')
+def hello_world():
+    return render_template('index.html')
 
-@app.route('/doctinfo1')
-def doctinfo1():
-    # return 'Hello, World!'
-    return render_template('doctinfo1.html')
+@app.route('/index')
+def index():
+    return render_template('index.html')
 
-@app.route('/doctinfo2')
-def doctinfo2():
-    # return 'Hello, World!'
-    return render_template('doctinfo2.html')
+@app.route('/main')
+def main():
+    return render_template('main.html')
 
-@app.route('/doctinfo3')
-def doctinfo3():
-    # return 'Hello, World!'
-    return render_template('doctinfo3.html')
+#----------------------------------------------------------------DDD------------------------------------------------------------------------
+@app.route('/ddd')
+def ddd():
+    return render_template('ddd.html')
 
-@app.route('/docs')
-def docs():
-    # return 'Hello, World!'
-    return render_template('docs.html')
+@app.route('/rd')
+def rd():
+    return render_template('ddd/rdkit.html')
+@app.route('/ad')
+def ad():
+    return render_template('ddd/autodoc.html')
+@app.route('/avg')
+def ag():
+    return render_template('ddd/Avogadro.html')
+@app.route('/bc')
+def bc():
+    return render_template('ddd/Bioconductor.html')
+@app.route('/bp')
+def bp():
+    return render_template('ddd/Biopython.html')
+@app.route('/cd')
+def cd():
+    return render_template('ddd/ChemDraw.html')
+@app.route('/ob')
+def ob():
+    return render_template('ddd/openBarel.html')
+@app.route('/py')
+def py():
+    return render_template('ddd/PyRx.html')
 
-@app.route('/gmeet')
-def gmeet():
-    # return 'Hello, World!'
-    return render_template('gmeet.html')
+#-----------------------------------------------------------------------------------CTDA--------------------------------------------------------------
+@app.route('/ctda')
+def ctda():
+    return render_template('ctda.html')
 
-@app.route('/appoinment', methods=["GET", "POST"])
-def appoinment():
-    if request.method == 'POST':
-        # gender = request.form['gender']
-        appoinmentname = request.form['appoinmentname']
-        email = request.form['email']
-        doctor = request.form['doctor']
-        message = request.form['message']
-        bookappoinment = Appoinment(appoinmentname=appoinmentname, email=email, doctor=doctor, message=message)
-        db.session.add(bookappoinment)
-        # db.session.commit()   
-        print("Executed")
-        db.session.commit()
-        return render_template('return2.html')
-    # return 'Hello, World!'
-    return render_template('appoinment.html')
+@app.route('/r')
+def r():
+    return render_template('ctda/R.html')
+@app.route('/pnm')
+def pnm():
+    return render_template('ctda/pnm.html')
+@app.route('/oc')
+def oc():
+    return render_template('ctda/OpenClinica.html')
+@app.route('/rc')
+def rc():
+    return render_template('ctda/REDCap.html')
+@app.route('/oe')
+def oe():
+    return render_template('ctda/OpenEHR.html')
+@app.route('/kap')
+def kap():
+    return render_template('ctda/kap.html')
+@app.route('/jn')
+def jn():
+    return render_template('ctda/jn.html')
+@app.route('/o')
+def o():
+    return render_template('ctda/Oracle.html')
+@app.route('/sas')
+def sas():
+    return render_template('ctda/sas.html')
+@app.route('/de')
+def de():
+    return render_template('ctda/de.html')
 
-if __name__ =="__main__":
+#----------------------------------------------------------------  PDS ------------------------------------------------------------------------
+
+@app.route('/pds')
+def pds():
+    return render_template('pds.html')
+
+@app.route('/agg')
+def agg():
+    return render_template('pds/ag.html')
+@app.route('/ov')
+def ov():
+    return render_template('pds/ov.html')
+@app.route('/oas')
+def oas():
+    return render_template('pds/oas.html')
+@app.route('/vf')
+def vf():
+    return render_template('pds/vf.html')
+
+#----------------------------------------------------------------  PP ------------------------------------------------------------------------
+
+@app.route('/pp')
+def pp():
+    return render_template('pp.html')
+
+@app.route('/bm')
+def bm():
+    return render_template('pp/bm.html')
+@app.route('/gp')
+def gp():
+    return render_template('pp/gp.html')
+@app.route('/nn')
+def nn():
+    return render_template('pp/nn.html')
+@app.route('/pw')
+def pw():
+    return render_template('pp/pw.html')
+@app.route('/sc')
+def sc():
+    return render_template('pp/sc.html')
+
+#----------------------------------------------------------------  DMML ------------------------------------------------------------------------
+
+@app.route('/dmml')
+def dmml():
+    return render_template('dmml.html')
+
+@app.route('/h2o')
+def h2o():
+    return render_template('dmml/h2o.html')
+@app.route('/orn')
+def orn():
+    return render_template('dmml/orn.html')
+@app.route('/rm')
+def rm():
+    return render_template('dmml/rm.html')
+@app.route('/sl')
+def sl():
+    return render_template('dmml/sl.html')
+@app.route('/ts')
+def ts():
+    return render_template('dmml/ts.html')
+@app.route('/w')
+def w():
+    return render_template('dmml/w.html')
+
+#----------------------------------------------------------------  TMNLP ------------------------------------------------------------------------
+
+@app.route('/tmnlp')
+def tmnlp():
+    return render_template('tmnlp.html')
+
+@app.route('/gs')
+def gs():
+    return render_template('tmnlp/gs.html')
+@app.route('/nltk')
+def nltk():
+    return render_template('tmnlp/nltk.html')
+@app.route('/pt')
+def pt():
+    return render_template('tmnlp/pt.html')
+@app.route('/ss')
+def ss():
+    return render_template('tmnlp/ss.html')
+@app.route('/sp')
+def sp():
+    return render_template('tmnlp/sp.html')
+@app.route('/tl')
+def tl():
+    return render_template('tmnlp/tl.html')
+
+#----------------------------------------------------------------  DM ------------------------------------------------------------------------
+
+@app.route('/dm')
+def dm():
+    return render_template('dm.html')
+
+@app.route('/apache')
+def apache():
+    return render_template('dm/apache.html')
+@app.route('/couch')
+def couch():
+    return render_template('dm/couch.html')
+@app.route('/mongo')
+def mongo():
+    return render_template('dm/mongo.html')
+@app.route('/mssql')
+def mssql():
+    return render_template('dm/mssql.html')
+@app.route('/mysql')
+def mysql():
+    return render_template('dm/mysql.html')
+@app.route('/neo')
+def neo():
+    return render_template('dm/neo.html')
+@app.route('/post')
+def post():
+    return render_template('dm/post.html')
+@app.route('/sqlite')
+def sqlite():
+    return render_template('dm/sqlite.html')
+
+#----------------------------------------------------------------  AI TOOLS ------------------------------------------------------------------------
+
+@app.route('/ai')
+def ai():
+    return render_template('ai/ai.html')
+
+if __name__ == "__main__":
+    with app.app_context():
+        db.create_all()
     app.run(debug=True)
+
